@@ -44,7 +44,9 @@
             const [isLocked, setIsLocked] = React.useState(true);
             const [pinInput, setPinInput] = React.useState("");
             const [pinError, setPinError] = React.useState("");
-            const userPin = localStorage.getItem('app_pin') || "1234"; // Default 1234 jika belum set
+            
+            // Mengambil PIN dari localStorage, atau default ke "1234"
+            const [userPin, setUserPin] = React.useState(localStorage.getItem('app_pin') || "1234");
 
             const chatEndRef = React.useRef(null);
 
@@ -52,8 +54,23 @@
 
             const handleUnlock = (e) => {
                 e.preventDefault();
-                if (pinInput === userPin) { setIsLocked(false); setPinInput(""); } 
-                else { setPinError("PIN Salah"); setPinInput(""); }
+                // Trim untuk menghapus spasi tidak sengaja
+                if (pinInput.trim() === userPin) { 
+                    setIsLocked(false); 
+                    setPinInput(""); 
+                } else { 
+                    setPinError("PIN Salah"); 
+                    setPinInput(""); 
+                }
+            };
+
+            // FUNGSI BARU: Reset PIN jika stuck
+            const handleResetApp = () => {
+                if(confirm("Apakah Anda yakin ingin mereset aplikasi? \n\nSemua pengaturan lokal akan dihapus dan PIN akan kembali menjadi 1234.")) {
+                    localStorage.removeItem('app_pin');
+                    localStorage.removeItem('secure_scheduler_vault'); // Hapus sisa data lama jika ada
+                    window.location.reload();
+                }
             };
 
             const addMsg = (text, confirm = false, data = null) => 
@@ -73,7 +90,7 @@
                     if (!res.ok) throw new Error("Gagal menghubungi AI");
                     return await res.json();
                 } catch (e) {
-                    return { status: "INVALID", reply: "Maaf, sistem sedang sibuk. Coba lagi nanti." };
+                    return { status: "INVALID", reply: "Maaf, sistem sedang sibuk atau konfigurasi API belum lengkap." };
                 }
             };
 
@@ -97,7 +114,6 @@
             const saveToServer = async (d) => {
                 setIsLoading(true);
                 try {
-                    // Panggil API Vercel untuk menyimpan (Menggunakan Service Account)
                     const res = await fetch('/api/save', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -143,7 +159,13 @@
                                 Masuk Aplikasi
                             </button>
                         </form>
+                        
                         {pinError && <p className="mt-4 text-red-500 text-sm font-medium animate-pulse">{pinError}</p>}
+                        
+                        {/* TOMBOL RESET PIN */}
+                        <button onClick={handleResetApp} className="mt-8 text-xs text-slate-400 hover:text-red-500 underline transition-colors">
+                            Lupa PIN? / Reset App
+                        </button>
                     </div>
                 </div>
             );
